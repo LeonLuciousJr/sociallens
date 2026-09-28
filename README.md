@@ -8,3 +8,7 @@ A backlog item is Done when:
 - [ ] It runs locally, and its logic has been verified through tests or manual checks.
 - [ ] It does not break previously-passing verification steps
 - [ ] Any new setup, usage, or configuration steps are documented in the project README or relevant documentation.
+
+## Process
+
+SocialLens follows an incremental process. Since the project is already broken up into milestones with deliverables, it naturally fits to have one milestone correspond to one increment. See docs/BACKLOG.md for the current product backlog.
