@@ -56,6 +56,12 @@ class PostResponseSerializer(serializers.ModelSerializer):
         return post.media.url if post.media else None
 
 
+class PostListQuerySerializer(serializers.Serializer):
+    page = serializers.IntegerField(required=False, min_value=1, default=1)
+    onlyFollowing = serializers.BooleanField(required=False, default=False)
+    liked = serializers.BooleanField(required=False, default=False)
+
+
 class PostPagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = "page_size"
@@ -67,7 +73,16 @@ class PostListCreateView(APIView):
     parser_classes = [JSONParser, MultiPartParser, FormParser]
     
     def get(self, request):
-        posts = post_service.list_posts()
+        query = PostListQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+
+        params = query.validated_data
+        posts = post_service.list_posts(
+            user_id=request.user.pk,
+            page=params["page"],
+            only_following=params["onlyFollowing"],
+            liked=params.get("liked"),
+        )
 
         paginator = PostPagination()
         page = paginator.paginate_queryset(posts, request, view=self)

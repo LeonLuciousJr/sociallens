@@ -12,5 +12,10 @@ def publish_post(*, author_id, title, body, media_type, media=None, caption=""):
     )
     
 
-def list_posts():
-    return post_repository.list_posts()
+def list_posts(*, user_id=None, page=1, only_following=False, liked=False):
+    return post_repository.list_posts(
+        user_id=user_id,
+        page=page, 
+        only_following=only_following,
+        liked=liked    
+    )
