@@ -63,7 +63,7 @@ export default function ComposeScreen({ onPublished, navigate, onExpired }) {
         }
       }
       setStage('Publishing…')
-      await publishPost({ title, body, media, caption: image ? caption : '' }, session, controller.signal)
+      await publishPost({ title, body, image, caption: image ? caption : '' }, session, controller.signal)
       if (!controller.signal.aborted) onPublished()
     } catch (failure) {
       if (!controller.signal.aborted) {

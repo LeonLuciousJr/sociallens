@@ -1,4 +1,4 @@
-import { readMedia, readPost, readUser } from './contract.js'
+import { readMedia, readPost, readTokenUser } from './contract.js'
 
 export const API_ROUTES = Object.freeze({
   register: '/api/auth/register',
@@ -95,15 +95,11 @@ export function authHeaders(session) {
 }
 
 function readSession(data) {
-  if (typeof data?.accessToken !== 'string' || !data.accessToken
-    || typeof data.refreshToken !== 'string' || !data.refreshToken) {
+  if (typeof data?.access !== 'string' || !data.access
+    || typeof data.refresh !== 'string' || !data.refresh) {
     throw new ApiError('The sign-in response was incomplete. Please try again.')
   }
-  try {
-    return { user: readUser(data.user), accessToken: data.accessToken, refreshToken: data.refreshToken }
-  } catch {
-    throw new ApiError('The sign-in response was incomplete. Please try again.')
-  }
+  return { user: readTokenUser(data.access), accessToken: data.access, refreshToken: data.refresh }
 }
 
 export async function register({ email, displayName, password }, signal) {
@@ -114,7 +110,7 @@ export async function register({ email, displayName, password }, signal) {
 
 export async function login({ email, password }, signal) {
   return readSession(await request(API_ROUTES.login, {
-    method: 'POST', body: { email, password }, signal,
+    method: 'POST', body: { email: email.trim().toLowerCase(), password }, signal,
   }))
 }
 
@@ -122,18 +118,18 @@ export async function getPosts({ page, filter = 'public', session, signal } = {}
   if (!['public', 'following', 'liked'].includes(filter)) throw new ApiError('Unknown feed filter.')
   const params = new URLSearchParams()
   if (page !== undefined) params.set('page', String(page))
-  if (filter === 'following') params.set('followingOnly', 'true')
+  if (filter === 'following') params.set('onlyFollowing', 'true')
   if (filter === 'liked') params.set('liked', 'true')
   const query = params.size ? `?${params}` : ''
-  // Public feed works anonymously. Personalized feeds require a Bearer token.
-  const headers = filter !== 'public' || session ? authHeaders(session) : {}
+  // The merged backend requires authentication for every feed.
+  const headers = authHeaders(session)
   const data = await request(`${API_ROUTES.posts}${query}`, { signal, headers })
-  if (!Array.isArray(data?.posts) || !Number.isInteger(data.page)
-    || typeof data.hasMore !== 'boolean') {
+  if (!Array.isArray(data?.results) || !Number.isInteger(data.count)
+    || !(data.next === null || typeof data.next === 'string')) {
     throw new ApiError('The feed response was incomplete. Please try again.')
   }
   try {
-    return { posts: data.posts.map(readPost), page: data.page, hasMore: data.hasMore }
+    return { posts: data.results.map(readPost), page: page ?? 1, hasMore: data.next !== null }
   } catch {
     throw new ApiError('The feed contains an unsupported post format. Please try again later.')
   }
@@ -153,15 +149,25 @@ export async function uploadImage(file, session, signal) {
   }
 }
 
-export async function publishPost({ title, body = '', media = '', caption = '' }, session, signal) {
+export async function publishPost({ title, body = '', image = null, caption = '' }, session, signal) {
   const headers = authHeaders(session)
   if (!title.trim()) throw new ApiError(errors.TITLE_REQUIRED, 422)
-  if (!body.trim() && !media) throw new ApiError('Write something or choose an image before publishing.', 422)
-  const result = await request(API_ROUTES.posts, {
-    method: 'POST', signal, headers,
-    body: { title: title.trim(), body: body.trim(), mediaType: media ? 'IMAGE' : 'TEXT', media, caption: caption.trim() },
-  })
-  try { return readPost(result?.post) } catch {
+  if (!body.trim() && !image) throw new ApiError('Write something or choose an image before publishing.', 422)
+  let payload = { title: title.trim(), body: body.trim(), mediaType: 'TEXT', caption: caption.trim() }
+  // ImageField accepts a file, not the URL returned by /api/media. Text omits media entirely.
+  if (image) {
+    if (!(image instanceof Blob) || !image.size || !image.type.startsWith('image/')) {
+      throw new ApiError('Choose a valid image file.', 400)
+    }
+    payload = new FormData()
+    payload.append('title', title.trim())
+    payload.append('body', body.trim())
+    payload.append('mediaType', 'IMAGE')
+    payload.append('caption', caption.trim())
+    payload.append('media', image)
+  }
+  const result = await request(API_ROUTES.posts, { method: 'POST', signal, headers, body: payload })
+  try { return readPost(result) } catch {
     throw new ApiError('The publish response was incomplete. Check the feed before trying again.')
   }
 }
@@ -181,7 +187,7 @@ export function createInteractionClient(routes = API_ROUTES) {
       throw new ApiError('This action is not available yet.')
     }
     if (typeof id !== 'string' || !id) throw new ApiError('This action needs a valid identifier.')
-    const body = action === 'like' || action === 'unlike' ? { postId: id } : { userId: id }
+    const body = action === 'like' || action === 'unlike' ? { postId: id } : { authorId: id }
     return request(routes[action], {
       method: action === 'unlike' || action === 'unfollow' ? 'DELETE' : 'POST',
       body, signal, headers,

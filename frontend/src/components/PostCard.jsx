@@ -9,7 +9,7 @@ export default function PostCard({ post, session, filter, onChanged, onExpired }
   const activeRequest = useRef(null)
   useEffect(() => () => activeRequest.current?.abort(), [])
   const date = new Date(post.createdAt)
-  const ownPost = session?.user.id === post.authorId
+  const ownPost = session?.user?.id === post.authorId
 
   async function act(action) {
     if (activeRequest.current) return
@@ -38,9 +38,9 @@ export default function PostCard({ post, session, filter, onChanged, onExpired }
 
   return (
     <article className="post-card">
-      <div className="post-label"><span className="post-marker" aria-hidden="true" /><span>{ownPost ? session.user.displayName : `Author ${post.authorId}`}</span>{!Number.isNaN(date.getTime()) && <time dateTime={post.createdAt}>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</time>}</div>
+      <div className="post-label"><span className="post-marker" aria-hidden="true" /><span>{ownPost ? 'You' : `Author ${post.authorId}`}</span>{!Number.isNaN(date.getTime()) && <time dateTime={post.createdAt}>{date.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</time>}</div>
       <h2>{post.title}</h2>
-      {post.mediaType === 'TEXT' ? <p className="post-body">{post.body}</p> : <figure className="post-image">{post.imageUrl && !imageFailed ? <img src={post.imageUrl} alt={post.caption || post.title} loading="lazy" onError={() => setImageFailed(true)} /> : <p className="muted">This image could not be displayed.</p>}{post.caption && <figcaption>{post.caption}</figcaption>}</figure>}
+      {post.mediaType === 'TEXT' ? <p className="post-body">{post.body}</p> : <figure className="post-image">{post.imageUrl && !imageFailed ? <img src={post.imageUrl} alt={post.caption || post.title} loading="lazy" onError={() => setImageFailed(true)} /> : <p className="muted">This image could not be displayed.</p>}{post.body && <p className="post-body">{post.body}</p>}{post.caption && <figcaption>{post.caption}</figcaption>}</figure>}
       <div className="post-actions"><span className="like-count">{post.likes} {post.likes === 1 ? 'like' : 'likes'}</span>{session && <>
         {filter !== 'liked' && actionButton('like', 'Like')}
         {actionButton('unlike', 'Unlike')}
