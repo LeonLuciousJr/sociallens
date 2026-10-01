@@ -14,8 +14,8 @@ class RefreshView(TokenRefreshView):
 
 
 urlpatterns = [
-    path("login", LoginView.as_view(), name="login"),
-    path("register", RegisterView.as_view(), name="register"),
+    path("auth/login", LoginView.as_view(), name="login"),
+    path("auth/register", RegisterView.as_view(), name="register"),
     path("posts", PostListCreateView.as_view(), name="list-create-post"),
     path("media", ImageUploadView.as_view(), name="media-upload"),
     path("like", LikeView.as_view(), name="like-post"),
