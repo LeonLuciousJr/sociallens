@@ -46,6 +46,6 @@ This will start the server locally
 To run the client run
 
 ```
-npm intall
+npm install
 npm run dev
 ```
