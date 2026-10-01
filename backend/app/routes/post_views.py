@@ -1,6 +1,6 @@
 from rest_framework import serializers, status
 from rest_framework.parsers import FormParser, JSONParser, MultiPartParser
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
@@ -69,16 +69,22 @@ class PostPagination(PageNumberPagination):
 
 
 class PostListCreateView(APIView):
-    permission_classes = [IsAuthenticated]
     parser_classes = [JSONParser, MultiPartParser, FormParser]
+    
+    def get_permissions(self):
+        if self.request.method == "GET":
+            return [AllowAny()]
+        return [IsAuthenticated()]
     
     def get(self, request):
         query = PostListQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
 
         params = query.validated_data
+        user_id = request.user.pk if request.user.is_authenticated else None
+        
         posts = post_service.list_posts(
-            user_id=request.user.pk,
+            user_id=user_id,
             page=params["page"],
             only_following=params["onlyFollowing"],
             liked=params.get("liked"),
