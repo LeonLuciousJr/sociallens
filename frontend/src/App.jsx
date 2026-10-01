@@ -1,93 +1,48 @@
-import { useEffect, useState } from 'react'
-import { fetchHealth } from './api.js'
+import { useCallback, useState } from 'react'
+import AuthProvider from './auth/AuthProvider.jsx'
+import { useAuth } from './auth/AuthContext.js'
+import AppHeader from './components/AppHeader.jsx'
+import Notice from './components/Notice.jsx'
+import AuthScreen from './screens/AuthScreen.jsx'
+import FeedScreen from './screens/FeedScreen.jsx'
+import ComposeScreen from './screens/ComposeScreen.jsx'
 
-const initialHealth = { state: 'loading', message: '', checkedAt: null }
+function SocialLens() {
+  const { session, signOut } = useAuth()
+  const [screen, setScreen] = useState('feed')
+  const [notice, setNotice] = useState('')
 
-export default function App() {
-  const [attempt, setAttempt] = useState(0)
-  const [health, setHealth] = useState(initialHealth)
+  const expired = useCallback(() => {
+    signOut()
+    setScreen('login')
+    setNotice('Your session ended. Please log in again.')
+  }, [signOut])
 
-  useEffect(() => {
-    const controller = new AbortController()
-    const timeout = window.setTimeout(() => controller.abort('timeout'), 8000)
-
-    fetchHealth(controller.signal)
-      .then(() => {
-        if (!controller.signal.aborted) {
-          setHealth({ state: 'success', message: '', checkedAt: new Date() })
-        }
-      })
-      .catch((error) => {
-        if (controller.signal.aborted && controller.signal.reason !== 'timeout') return
-        const message = controller.signal.reason === 'timeout'
-          ? 'The connection check timed out. Check the backend and try again.'
-          : error instanceof TypeError
-            ? 'Could not reach the API. Check the backend and try again.'
-            : error.message
-        setHealth({ state: 'error', message, checkedAt: new Date() })
-      })
-      .finally(() => window.clearTimeout(timeout))
-
-    return () => {
-      window.clearTimeout(timeout)
-      controller.abort()
-    }
-  }, [attempt])
-
-  function checkAgain() {
-    setHealth(initialHealth)
-    setAttempt((value) => value + 1)
+  function navigate(next) {
+    setNotice('')
+    setScreen(next === 'compose' && !session ? 'login' : next)
+  }
+  function signedOut() {
+    signOut()
+    setScreen('feed')
+    setNotice('You have signed out on this page.')
   }
 
-  const loading = health.state === 'loading'
-  const title = loading ? 'Checking connection…'
-    : health.state === 'success' ? 'All systems connected' : 'Connection needs attention'
-
   return (
-    <main className="shell">
-      <header>
-        <a className="brand" href="/" aria-label="SocialLens home">
-          <span className="brand-mark" aria-hidden="true">s</span>SocialLens
-        </a>
-        <span className="badge">CS 415 · Local foundation</span>
-      </header>
-
-      <section className="intro" aria-labelledby="page-title">
-        <p className="eyebrow">The starting point</p>
-        <h1 id="page-title">A foundation for<br />sharing perspectives.</h1>
-        <p className="description">The SocialLens development environment is taking shape.
-          Check the live connection before building the next feature.</p>
-      </section>
-
-      <section className="connection-card" aria-labelledby="connection-title">
-        <div className="card-heading">
-          <h2 id="connection-title">Environment check</h2>
-          <span className="endpoint">GET /api/health/</span>
-        </div>
-        <div className={`status ${health.state}`} role="status" aria-live="polite" aria-atomic="true">
-          <span className="status-dot" aria-hidden="true" />
-          <div>
-            <h3>{title}</h3>
-            <p>{loading ? 'Contacting the API and querying PostgreSQL.'
-              : health.state === 'success'
-                ? 'React received a successful response from Django and PostgreSQL.'
-                : health.message}</p>
-          </div>
-        </div>
-        <ol className="connection-path" aria-label="Connection path">
-          <li><span>01</span><strong>React</strong><small>Browser interface</small></li>
-          <li><span>02</span><strong>Django REST</strong><small>Application API</small></li>
-          <li><span>03</span><strong>PostgreSQL</strong><small>Persistent database</small></li>
-        </ol>
-        <div className="card-footer">
-          <p>{health.checkedAt ? `Last checked at ${health.checkedAt.toLocaleTimeString()}` : 'Live connection check'}</p>
-          <button onClick={checkAgain} disabled={loading}>
-            {loading ? 'Checking…' : 'Check again'}
-          </button>
-        </div>
-      </section>
-
-      <footer>Foundation preview · Accounts and social features are not available yet.</footer>
-    </main>
+    <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+      <AppHeader session={session} screen={screen} navigate={navigate} onSignOut={signedOut} />
+      <main id="main-content" tabIndex={-1}>
+        {notice && <Notice>{notice}</Notice>}
+        {screen === 'feed' && <FeedScreen session={session} navigate={navigate} onExpired={expired} />}
+        {(screen === 'register' || screen === 'login') && <AuthScreen key={screen} mode={screen} navigate={navigate} onSuccess={() => { setScreen('feed'); setNotice('You’re signed in. Welcome to SocialLens.') }} />}
+        {screen === 'compose' && session && <ComposeScreen navigate={navigate} onPublished={() => { setScreen('feed'); setNotice('Your post has been published.') }} onExpired={expired} />}
+      </main>
+      <footer className="app-footer"><span>SocialLens</span><span>A place for your perspective.</span><span>CS 415 · Milestone 1</span></footer>
+    </div>
   )
+}
+
+export default function App() {
+  return <AuthProvider><SocialLens /></AuthProvider>
 }
