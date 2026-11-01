@@ -9,7 +9,7 @@ def post_media_upload_to(instance, filename):
     # Use an opaque name rather than trusting the user's filename.
     extension = Path(filename).suffix.lower()
     return (
-        f"posts/{instance.author_id}/{instance.pk}/"
+        f"posts/{instance.authorId}/{instance.pk}/"
         f"{uuid.uuid4().hex}{extension}"
     )
     
