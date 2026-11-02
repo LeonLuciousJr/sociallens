@@ -1,4 +1,4 @@
-import { afterEach, test } from 'node:test'
+import { afterEach, test } from 'vitest'
 import assert from 'node:assert/strict'
 import { ApiError, API_ROUTES, request, register, login, getPosts, publishText, publishPost, uploadImage, authHeaders, interact, interactionAvailable, createInteractionClient } from '../src/api.js'
 import { readPost, readTokenUser, readMedia, safeMediaUrl } from '../src/contract.js'
