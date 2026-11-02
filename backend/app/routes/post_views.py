@@ -101,7 +101,7 @@ class PostListCreateView(APIView):
         serializer.is_valid(raise_exception=True)
 
         post = post_service.publish_post(
-            author_id=request.user,
+            authorId=request.user,
             **serializer.validated_data,
         )
 

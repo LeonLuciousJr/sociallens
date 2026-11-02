@@ -1,9 +1,9 @@
 from app.repositories import post_repository
 
 
-def publish_post(*, author_id, title, body, media_type, media=None, caption=""):
+def publish_post(*, authorId, title, body, media_type, media=None, caption=""):
     return post_repository.create_post(
-        authorId=author_id,
+        authorId=authorId,
         title=title, 
         body=body, 
         media_type=media_type, 
