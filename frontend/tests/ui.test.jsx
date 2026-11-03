@@ -67,12 +67,31 @@ test('unmount aborts authentication and ignores late completion', async () => {
   await act(async () => pending.resolve(session)); expect(success).not.toHaveBeenCalled()
 })
 
-test('signed-out feed prompts for login without requesting posts', async () => {
+test('visitors browse public posts without social controls and must log in for personalized feeds', async () => {
+  api.getPosts.mockResolvedValue(page([post]))
   const navigate = vi.fn(); render(<FeedScreen session={null} navigate={navigate} onExpired={vi.fn()} />)
-  expect(screen.getByText('Sign in to browse posts')).toBeVisible()
-  fireEvent.click(screen.getByRole('button', { name: 'Following' })); expect(navigate).toHaveBeenCalledWith('login')
-  fireEvent.click(screen.getByRole('button', { name: /Make yourself/ })); expect(navigate).toHaveBeenCalledWith('register')
-  expect(api.getPosts).not.toHaveBeenCalled()
+  expect(await screen.findByText(post.title)).toBeVisible()
+  expect(api.getPosts).toHaveBeenCalledWith(expect.objectContaining({ session: null, filter: 'public' }))
+  for (const name of ['Like', 'Unlike', 'Follow', 'Unfollow']) {
+    expect(screen.queryByRole('button', { name, exact: true })).not.toBeInTheDocument()
+  }
+  fireEvent.click(screen.getByRole('button', { name: 'Public', exact: true }))
+  expect(navigate).not.toHaveBeenCalled()
+  for (const name of ['Following', 'Liked posts']) {
+    fireEvent.click(screen.getByRole('button', { name }))
+    expect(navigate).toHaveBeenLastCalledWith('login')
+  }
+  expect(api.getPosts).toHaveBeenCalledTimes(1)
+  fireEvent.click(screen.getByRole('button', { name: /Make yourself/ }))
+  expect(navigate).toHaveBeenLastCalledWith('register')
+})
+
+test('empty anonymous public feed offers registration to publish', async () => {
+  const navigate = vi.fn(); render(<FeedScreen session={null} navigate={navigate} onExpired={vi.fn()} />)
+  expect(await screen.findByText('A fresh page.')).toBeVisible()
+  fireEvent.click(screen.getByRole('button', { name: 'Join SocialLens' }))
+  expect(navigate).toHaveBeenCalledWith('register')
+  expect(api.publishPost).not.toHaveBeenCalled()
 })
 
 test('feed shows loading, error, retry, empty states and compose action', async () => {
@@ -195,7 +214,7 @@ test('full application navigates register, login, compose, publish and client lo
   change('Title', 'Hello'); change('Your post', 'Words'); submit()
   expect(await screen.findByText('Your post has been published.')).toBeVisible()
   await user.click(screen.getByRole('button', { name: 'Sign out' }))
-  expect(screen.getByText('Sign in to browse posts')).toBeVisible()
+  expect(await screen.findByText('A fresh page.')).toBeVisible()
   expect(localStorage.length).toBe(0); expect(sessionStorage.length).toBe(0)
 })
 
@@ -205,5 +224,5 @@ test('application handles expired session and brand navigation', async () => {
   api.getPosts.mockRejectedValue(Object.assign(new Error('Expired'), { status: 401 }))
   fireEvent.click(screen.getByRole('button', { name: 'Following' }))
   expect(await screen.findByText('Your session ended. Please log in again.')).toBeVisible()
-  fireEvent.click(screen.getByRole('link', { name: /SocialLens/ })); expect(screen.getByText('Sign in to browse posts')).toBeVisible()
+  api.getPosts.mockResolvedValue(page()); fireEvent.click(screen.getByRole('link', { name: /SocialLens/ })); expect(await screen.findByText('A fresh page.')).toBeVisible()
 })

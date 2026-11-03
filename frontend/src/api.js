@@ -121,8 +121,8 @@ export async function getPosts({ page, filter = 'public', session, signal } = {}
   if (filter === 'following') params.set('onlyFollowing', 'true')
   if (filter === 'liked') params.set('liked', 'true')
   const query = params.size ? `?${params}` : ''
-  // The merged backend requires authentication for every feed.
-  const headers = authHeaders(session)
+  // Public browsing is anonymous; personalized feeds still require a token.
+  const headers = session || filter !== 'public' ? authHeaders(session) : {}
   const data = await request(`${API_ROUTES.posts}${query}`, { signal, headers })
   if (!Array.isArray(data?.results) || !Number.isInteger(data.count)
     || !(data.next === null || typeof data.next === 'string')) {
