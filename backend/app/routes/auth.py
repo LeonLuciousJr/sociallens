@@ -1,3 +1,4 @@
+import logging
 from rest_framework import serializers, status
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -5,9 +6,27 @@ from rest_framework.views import APIView
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.exceptions import AuthenticationFailed
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from app.models import User
 from app.services import user_service
+
+logger = logging.getLogger("security.auth")
+
+
+class LoggingTokenObtainPairSerializer(TokenObtainPairSerializer):
+    def validate(self, attrs):
+        try:
+            return super().validate(attrs)
+        except AuthenticationFailed:
+            email = attrs.get(self.username_field)
+            logger.warning(
+                "Failed login attempt event=%s email=%s",
+                "auth.login.failed",
+                email,
+            )
+            raise
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -23,6 +42,7 @@ class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
     throttle_classes = [ScopedRateThrottle]
     throttle_scope = "login"
+    serializer_class = LoggingTokenObtainPairSerializer
 
 
 class RegisterView(APIView):
