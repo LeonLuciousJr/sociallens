@@ -17,7 +17,8 @@ Open http://127.0.0.1:5173. The backend must run at http://127.0.0.1:8000.
 Vite proxies `/api/` and `/uploads/`. Production hosting needs equivalent routing.
 
 ```sh
-node --test tests/api.test.mjs
+npm test
+npm run coverage
 npm run lint
 npm run build
 ```
@@ -65,3 +66,11 @@ PostgreSQL integration. Verify real login/register, text persistence, pagination
 likes/follows and filtered feed membership with the running backend. Existing backend
 validation errors may appear as generic frontend messages. No backend dependencies,
 services, database, or source were changed by this frontend-only adaptation.
+
+## Milestone 2 frontend verification
+
+Vitest now runs the original 26 API cases plus 16 Testing Library/jsdom UI cases.
+All application JS/JSX is included in V8 coverage. See the root README for commands
+and `tests/evidence/results.json` for this run's measured results. Generated reports
+are in ignored `coverage/`. No real backend integration or cross-platform validation
+is implied by mocked tests or the isolated viewport preview.
