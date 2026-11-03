@@ -13,13 +13,19 @@ A backlog item is Done when:
 
 SocialLens follows an incremental process. Since the project is already broken up into milestones with deliverables, it naturally fits to have one milestone correspond to one increment. See docs/BACKLOG.md for the current product backlog.
 
-## Developement
+## Development
+
+### Prerequisites
+
+- Python: 3.13 or later
+- PostgreSQL: 16
+- uv
 
 ### Server
 
 To run the server first make a PostgreSQL db like so:
 
-```
+```sh
 docker run --name sociallens-postgres \
 -e POSTGRES_USER=sociallens \
 -e POSTGRES_PASSWORD=sociallens \
@@ -28,7 +34,7 @@ docker run --name sociallens-postgres \
 -d postgres:16
 ```
 
-Then create an ```.env``` file with the values.
+Create a `.env` file in `/backend`, using `.env.example` as a guide.
 
 Next make sure uv is installed and you are in the backend directory and run
 
@@ -75,3 +81,22 @@ use real credentials. Check login, registration, feed, and compose at 375, 768,
 and 1440px. Stop with Ctrl-C. See `frontend/tests/evidence/results.json` and saved
 feed images for observed results. Real backend flows and other OS/browser testing
 remain separate verification tasks.
+
+### Backend tests
+
+Django utilizes a section of the same database that should have been setup from the developement step. 
+Make sure it is running and a `.env` file is properly filled out before testing.
+
+To run the full suite, enter the backend directory and run pytest through uv like so:
+
+```sh
+cd backend
+uv run pytest
+```
+
+To run a specific test suite, pass its directory:
+
+```sh
+uv run pytest tests/unit
+uv run pytest tests/integration
+```
