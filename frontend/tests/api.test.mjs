@@ -68,9 +68,7 @@ test('network and malformed success responses have readable errors', async () =>
   await assert.rejects(request('/api/posts'), /unreadable response/)
 })
 
-test('every feed requires a session; DRF pagination maps to the UI', async () => {
-  globalThis.fetch = async () => assert.fail('No anonymous network request')
-  await assert.rejects(getPosts(), { status: 401 })
+test('signed-in public feed retains Bearer auth and DRF pagination', async () => {
   const urls = []
   globalThis.fetch = async (url, options) => {
     urls.push(url)
@@ -248,4 +246,17 @@ test('caller cancellation aborts underlying fetch', async () => {
 test('backend image failure is surfaced rather than claimed as publication', async () => {
   globalThis.fetch = async () => new Response('server traceback', { status: 500 })
   await assert.rejects(publishPost({ title: 'Image', image: new File(['bytes'], 'p.png', { type: 'image/png' }) }, session), { status: 500 })
+})
+
+ test('anonymous public feed and pagination omit Authorization', async () => {
+  const urls = []
+  globalThis.fetch = async (url, options) => {
+    urls.push(url)
+    assert.equal(options.headers.Authorization, undefined)
+    assert.equal(options.credentials, 'omit')
+    return json({ results: [post], count: 21, next: null, previous: null })
+  }
+  assert.equal((await getPosts()).posts[0].id, post.id)
+  await getPosts({ page: 2, session: null })
+  assert.deepEqual(urls, ['/api/posts', '/api/posts?page=2'])
 })
