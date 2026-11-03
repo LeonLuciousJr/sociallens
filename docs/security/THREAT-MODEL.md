@@ -28,8 +28,10 @@
 
 - 2026 — post creation sets the author from the authenticated request, rather than accepting an author ID from the client.
 - 2026 — registration enforces a 12-character minimum password length; image upload uses DRF’s `ImageField`.
-- 2026 — JWT lifetimes and refresh behavior set via Django config
-- **Still to verify:** rate limits on registration, login, and uploads; image-size limits; feed visibility rules; and safe rendering of post content.
+- 2026 — JWT lifetimes and refresh behavior set via Django config.
+- 2026 — Rate limiting added to registration and login.
+- 2026 — Logging added on failed login attempts.
+- **Still to verify:** rate limits on uploads; image-size limits; feed visibility rules; and safe rendering of post content.
 
 ### Security Measurement Baseline
 
