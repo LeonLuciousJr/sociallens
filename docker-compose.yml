@@ -1,0 +1,38 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: sociallens
+      POSTGRES_PASSWORD: sociallens
+      POSTGRES_DB: sociallens_dev
+    ports:
+      - "5433:5432" # Avoids conflict with any local PostgreSQL on 5432
+    volumes:
+      - sociallens_db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sociallens -d sociallens_dev"]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+  backend:
+    build: ./backend
+    environment:
+      DB_NAME: sociallens_dev
+      DB_USER: sociallens
+      DB_PASSWORD: sociallens
+      DB_HOST: db
+      DB_PORT: "5432"
+      DJANGO_SECRET_KEY: ${DJANGO_SECRET_KEY:?set DJANGO_SECRET_KEY in .env}
+      DJANGO_DEBUG: ${DJANGO_DEBUG:-False}
+    ports:
+      - "8000:8000"
+    volumes:
+      - sociallens_uploads:/app/uploads
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  sociallens_db_data:
+  sociallens_uploads:
