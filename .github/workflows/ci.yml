@@ -57,7 +57,7 @@ jobs:
 
       - name: Check backend syntax and undefined names
         working-directory: backend
-        run: uvx ruff check --select E9,F --exclude "*/migrations/*" .
+        run: uvx ruff check .
 
       - name: Set up Node.js
         uses: actions/setup-node@v5
